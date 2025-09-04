@@ -41,6 +41,10 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
+@app.get("/")
+def read_root():
+    return {"message": "Hello from EMR Project!"}
+
 from backend.routers import patients
 app.include_router(patients.router)
 
@@ -402,3 +406,4 @@ def analyze_observations(patient_id: str):
         }
 
     return result
+
