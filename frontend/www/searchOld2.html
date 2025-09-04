@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tìm kiếm bệnh nhân</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/framework7@7/framework7-bundle.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/framework7@7/framework7-bundle.min.js"></script>
+
+  <script>
+    const app = new Framework7({
+        root: '#app',
+        name: 'EMR',
+        theme: 'auto',
+    });
+  </script>
+
+  <style>
+    .search-bar {
+      margin: 1rem;
+    }
+    .card-content {
+      font-size: 16px;
+    }
+    .observation-buttons button {
+      margin: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="view view-main" data-name= "    main">
+      <div class="page" data-name="search" class="page">
+        <div class="navbar">
+          <div class="navbar-inner">
+            <div class="title">Tìm kiếm bệnh nhân</div>
+          </div>
+        </div>
+
+        <div class="page-content">
+          <div class="search-bar">
+            <form onsubmit="searchPatient(); return false;">
+              <div class="list no-hairlines-md">
+                <ul>
+                  <li class="item-content item-input">
+                    <div class="item-inner">
+                      <div class="item-title item-label">ID hoặc Tên</div>
+                      <div class="item-input-wrap">
+                        <input type="text" id="searchInput" placeholder="Nhập ID hoặc tên..." />
+                      </div>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+              <div class="block">
+                <button class="button button-fill" type="submit">Tìm kiếm</button>
+              </div>
+            </form>
+          </div>
+
+          <div id="patientCardContainer"></div>
+
+          <div class="block-title">Danh sách bệnh nhân</div>
+          <div class="list media-list">
+            <ul id="patientListItems"></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $$ = Framework7.$;
+
+    async function loadPatientList() {
+      const res = await fetch("/api/patients");
+      const patients = await res.json();
+      const list = $$("#patientListItems");
+      list.html("");
+      patients.forEach(p => {
+        list.append(`
+          <li>
+            <div class="item-content">
+              <div class="item-inner">
+                <div class="item-title">${p.patient_id} - ${p.full_name}</div>
+              </div>
+            </div>
+          </li>
+        `);
+      });
+    }
+
+    async function searchPatient() {
+      const query = $$("#searchInput").val();
+      const res = await fetch(`/api/patients/search?query=${encodeURIComponent(query)}`);
+      const results = await res.json();
+
+      if (results.length === 0) {
+        Framework7.dialog.alert("Không tìm thấy bệnh nhân.");
+        return;
+      }
+
+      const p = results[0];
+      const card = `
+        <div class="card">
+          <div class="card-header">${p.full_name} (${p.patient_id})</div>
+          <div class="card-content card-content-padding">
+            <p><b>Ngày sinh:</b> ${p.birth_date}</p>
+            <p><b>Giới tính:</b> ${p.gender}</p>
+            <p><b>Điện thoại:</b> ${p.phone}</p>
+            <p><b>Bảo hiểm:</b> ${p.insurance_id}</p>
+            <div class="observation-buttons">
+              <button class="button button-outline" onclick="showObservation('${p.patient_id}', 'temperature')">Nhiệt độ</button>
+              <button class="button button-outline" onclick="showObservation('${p.patient_id}', 'glucose')">Glucose</button>
+              <button class="button button-outline" onclick="showObservation('${p.patient_id}', 'blood_pressure')">Huyết áp</button>
+              <button class="button button-outline" onclick="showObservation('${p.patient_id}', 'ecg')">ECG</button>
+              <button class="button button-outline" onclick="showObservation('${p.patient_id}', 'heart_rate')">Nhịp tim</button>
+              <button class="button button-outline" onclick="showObservation('${p.patient_id}', 'spo2')">SpO2</button>
+            </div>
+            <div id="observationValue"></div>
+          </div>
+        </div>
+      `;
+      $$("#patientCardContainer").html(card);
+    }
+
+    async function showObservation(patientId, type) {
+      const res = await fetch(`/api/observations/${patientId}`);
+      const data = await res.json();
+      const filtered = data.filter(o => o.type === type);
+      const html = filtered.map(o => `<p>${o.date}: ${o.value}</p>`).join("");
+      $$("#observationValue").html(`<div class="block-title">${type}</div>${html}`);
+    }
+
+    document.addEventListener("DOMContentLoaded", loadPatientList);
+  </script>
+
+  <!-- <script src="js/search.js"></script> -->
+   <!-- <script src="/static/js/search.js"></script> -->
+
+  <button class="button button-fill">Nút thử Framework7</button>
+</body>
+</html>

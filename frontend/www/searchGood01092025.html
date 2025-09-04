@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Tra cứu quan sát</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="framework7/framework7-bundle.min.css">
+  <link rel="stylesheet" href="css/app.css">
+  <style>
+    .observation-buttons-horizontal {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .observation-buttons-horizontal .button {
+      flex: 1;
+      min-width: 60px;
+      text-align: center;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="view view-main view-init safe-areas">
+      <div class="page" data-name="search">
+        <div class="navbar">
+          <div class="navbar-inner">
+            <div class="title">Tra cứu dữ liệu Observation</div>
+          </div>
+        </div>
+
+        <div class="page-content">
+          <div class="block">
+            <form onsubmit="searchPatient(); return false;">
+              <div class="list no-hairlines-md">
+                <ul>
+                  <li class="item-content item-input">
+                    <div class="item-inner">
+                      <div class="item-title item-label">ID bệnh nhân</div>
+                      <div class="item-input-wrap">
+                        <input type="text" id="searchInput" placeholder="Nhập ID bệnh nhân..." />
+                      </div>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+              <div class="block">
+                <button class="button button-fill" type="submit">Tìm kiếm</button>
+              </div>
+            </form>
+          </div>
+
+          <div id="resultContainer" class="block"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function searchPatient() {
+      const patientId = document.getElementById("searchInput").value.trim();
+      if (!patientId) return;
+
+      const container = document.getElementById("resultContainer");
+      container.innerHTML = "";
+
+      const types = [
+        { key: "temperature", label: "🌡️ Nhiệt độ" },
+        { key: "glucose", label: "🧪 Glucose" },
+        { key: "blood_pressure", label: "💉 Huyết áp" },
+        { key: "heart_rate", label: "❤️ Nhịp tim" },
+        { key: "spo2", label: "🫁 SpO₂" }
+      ];
+
+      const buttons = types.map(t =>
+        `<button class="button button-outline" onclick="loadObservation('${patientId}', '${t.key}', '${t.label}')">${t.label}</button>`
+      ).join("");
+
+      container.innerHTML = `
+        <div class="block-title">Chọn loại quan sát</div>
+        <div class="observation-buttons-horizontal">${buttons}</div>
+        <div id="observationData" class="block" style="margin-top: 1rem;"></div>
+      `;
+    }
+
+    async function loadObservation(patientId, type, label) {
+      try {
+        const res = await fetch(`/api/observations/${patientId}`);
+        const data = await res.json();
+        const filtered = data.filter(o => o.type === type);
+
+        const sorted = filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+        const recent = sorted.slice(0, 6).reverse();
+
+        const container = document.getElementById("observationData");
+        if (recent.length === 0) {
+          container.innerHTML = `<p>Không có dữ liệu cho ${label}</p>`;
+          if (currentChart) currentChart.destroy(); // Xóa chart nếu có
+          return;
+        }
+
+        const html = recent.map(o => `<p>${o.date}: ${o.value}</p>`).join("");
+        container.innerHTML = `<div class="block-title">${label}</div>${html}`;
+
+
+        drawChart(type, recent); // ✅ Vẽ biểu đồ ngay sau khi hiển thị
+      } catch (err) {
+        console.error("Lỗi khi lấy dữ liệu:", err);
+        document.getElementById("observationData").innerHTML = `<p>Lỗi khi lấy dữ liệu từ server.</p>`;
+        if (currentChart) currentChart.destroy();
+      }
+    }
+  </script>
+
+  <canvas id="chart" width="600" height="300"></canvas>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+  let currentChart = null; // Biến lưu chart hiện tại
+
+  function drawChart(type, data) {
+  const ctx = document.getElementById("chart").getContext("2d");
+
+  if (currentChart) {
+    currentChart.destroy();
+  }
+
+  const labels = data.map(item => item.date);
+  let datasets;
+
+  if (type === "blood_pressure") {
+    const systolic = data.map(item => parseInt(item.value.split("/")[0]));
+    const diastolic = data.map(item => parseInt(item.value.split("/")[1]));
+
+    datasets = [
+      {
+        label: "Tâm thu",
+        data: systolic,
+        borderColor: "red",
+        fill: false
+      },
+      {
+        label: "Tâm trương",
+        data: diastolic,
+        borderColor: "blue",
+        fill: false
+      }
+    ];
+  } else {
+    datasets = [{
+      label: type,
+      data: data.map(item => parseFloat(item.value)),
+      borderColor: "green",
+      fill: false
+    }];
+  }
+
+  currentChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: datasets
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: {
+          display: true,
+          text: `Biểu đồ ${type}`
+        }
+      }
+    }
+  });
+}
+
+  // Gọi hàm khi click nút
+  //document.getElementById("btn-glucose").addEventListener("click", () => drawChart("glucose", observationData));
+  //document.getElementById("btn-spo2").addEventListener("click", () => drawChart("spo2", observationData));
+  //document.getElementById("btn-temperature").addEventListener("click", () => drawChart("temperature", observationData));
+  //document.getElementById("btn-heart_rate").addEventListener("click", () => drawChart("heart_rate", observationData));
+  //document.getElementById("btn-blood_pressure").addEventListener("click", () => drawChart("blood_pressure", observationData));
+  </script>
+
+  
+
+  <script src="framework7/framework7-bundle.min.js"></script>
+  <script src="js/routes.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

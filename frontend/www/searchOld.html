@@ -1,0 +1,41 @@
+<template>
+  <div class="page" data-name="search">
+    <div class="navbar"><div class="title">Tìm bệnh nhân</div></div>
+    <div class="page-content">
+      <div class="block">
+        <input type="text" id="searchInput" placeholder="Nhập tên bệnh nhân..." />
+        <div id="results"></div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+  document.addEventListener("page:init", function (e) {
+    if (e.detail.name !== "search") return;
+
+    const input = document.getElementById("searchInput");
+    const results = document.getElementById("results");
+
+    input.addEventListener("input", async () => {
+      const keyword = input.value.trim();
+      if (!keyword) {
+        results.innerHTML = "";
+        return;
+      }
+
+      const res = await fetch(`/api/patients/search?query=${keyword}`);
+      const data = await res.json();
+
+      results.innerHTML = data.map(p => `
+        <div class="card">
+          <div class="card-content card-content-padding">
+            <b>${p.full_name}</b> (${p.patient_id})<br>
+            ${p.gender} - ${p.birth_date}<br>
+            ${p.phone} - ${p.insurance_id}
+          </div>
+        </div>
+      `).join('');
+    });
+  });
+</script>

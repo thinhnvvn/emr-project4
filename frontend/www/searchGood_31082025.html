@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <!--
+  Customize this policy to fit your own app's needs. For more guidance, please refer to the docs:
+      https://cordova.apache.org/docs/en/latest/
+  Some notes:
+    * https://ssl.gstatic.com is required only on Android and is needed for TalkBack to function properly
+    * Disables use of inline scripts in order to mitigate risk of XSS vulnerabilities. To change this:
+      * Enable inline JS: add 'unsafe-inline' to default-src
+  -->
+  <meta http-equiv="Content-Security-Policy" content="default-src * 'self' 'unsafe-inline' 'unsafe-eval' data: content:">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+
+  <meta name="theme-color" content="#fff">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="msapplication-tap-highlight" content="no">
+  <title>emr-project4</title>
+  
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <link rel="icon" href="assets/icons/favicon.png">
+  
+  
+  <link rel="stylesheet" href="framework7/framework7-bundle.min.css">
+  <link rel="stylesheet" href="css/icons.css">
+  <link rel="stylesheet" href="css/app.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+    .search-bar {
+      margin: 1rem;
+    }
+    .card-content {
+      font-size: 16px;
+    }
+    .observation-buttons button {
+      margin: 4px;
+    }
+
+    .observation-buttons-horizontal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.observation-buttons-horizontal .button {
+  flex: 1;
+  min-width: 60px;
+  text-align: center;
+  white-space: nowrap;
+}
+</style>
+</head>
+<body>
+  <div id="app">
+    <!-- Your main view, should have "view-main" class -->
+    <div class="view view-main view-init safe-areas">
+      <div class="page" data-name="search">
+        <!-- Top Navbar -->
+        <div class="navbar">
+          <div class="navbar-inner">
+            <div class="title">Tìm kiếm bệnh nhân</div>
+          </div>
+        </div>
+        
+        <!-- Scrollable page content-->
+        <div class="page-content">
+          <!-- Form tìm kiếm -->
+          <div class="block search-bar">
+            <form onsubmit="searchPatient(); return false;">
+              <div class="list no-hairlines-md">
+                <ul>
+                  <li class="item-content item-input">
+                    <div class="item-inner">
+                      <div class="item-title item-label">ID hoặc Tên</div>
+                      <div class="item-input-wrap">
+                        <input type="text" id="searchInput" placeholder="Nhập ID hoặc tên..." />
+                      </div>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+              <div class="block">
+                <button class="button button-fill" type="submit">Tìm kiếm</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Kết quả tìm kiếm -->
+          <div id="patientCardContainer" class="block"></div>
+
+          <!-- Danh sách bệnh nhân -->
+          <div class="block-title">Danh sách bệnh nhân</div>
+          <div class="list media-list">
+            <ul id="patientListItems"></ul>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Script xử lý -->
+  <script>
+    //const $$ = Framework7.$;
+
+    async function loadPatientList() {
+      try {
+        const res = await fetch("/api/patients");
+        const patients = await res.json();
+        //const list = $$("#patientListItems");
+        const list = $("#patientListItems");
+        list.html("");
+        patients.forEach(p => {
+          list.append(`
+            <li>
+              <div class="item-content">
+                <div class="item-inner">
+                  <div class="item-title">${p.patient_id} - ${p.full_name}</div>
+                </div>
+              </div>
+            </li>
+          `);
+        });
+      } catch (err) {
+        console.error("Lỗi khi tải danh sách:", err);
+      }
+    }
+
+    
+
+    async function searchPatient() {
+      const query = $("#searchInput").val();
+      //const res = await fetch(`/api/patients/search?query=${encodeURIComponent(query)}`);
+
+      const res = await fetch(`/api/patients/search?query=${encodeURIComponent(query)}`);
+      const results = await res.json();
+
+      $("#patientCardContainer").html(""); // ✅ Xóa kết quả cũ
+
+      if (results.length === 0) {
+        Framework7.dialog.alert("Không tìm thấy bệnh nhân.");
+        return;
+      }
+
+      //HIển thị một kết quả tìm kiếm -- Good
+      //const p = results[0];
+      //console.log("Két quả tìm kiếm:", p);
+
+
+      //const card = `
+      //  <div class="card">
+      //    <div class="card-header">${p.full_name ?? "?"} (${p.patient_id ?? "?"})</div>
+      //    <div class="card-content card-content-padding">
+      //      <p><b>Ngày sinh:</b> ${p.birth_date ?? "?"}</p>
+      //      <p><b>Giới tính:</b> ${p.gender && p.gender.trim() !== "" ? p.gender : "Không rõ"}</p>
+      //      <p><b>Điện thoại:</b> ${p.phone && p.phone.trim() !== "" ? p.phone : "Không rõ"}</p>
+      //      <p><b>Bảo hiểm:</b> ${p.insurance_id && p.insurance_id.trim() !== "" ? p.insurance_id : "Không rõ"}</p>
+      //    </div>
+      //  </div>
+      //`;
+      //$("#patientCardContainer").html(card);
+
+      // Hiển thị tất cả kết quả
+      results.forEach(p => {
+        //const card = `
+        //  <div class="card">
+        //    <div class="card-header" style="font-weight: bold; color: #00a1ff;">${p.full_name} (${p.patient_id})</div>
+        //    <div class="card-content card-content-padding">
+        //      <p><b>Ngày sinh:</b> ${p.birth_date}</p>
+        //      <p><b>Giới tính:</b> ${p.gender}</p>
+        //      <p><b>Điện thoại:</b> ${p.phone}</p>
+        //      <p><b>Bảo hiểm:</b> ${p.insurance_id}</p>
+        //    </div>
+        //  </div>
+        //`;
+        //$("#patientCardContainer").append(card);
+
+        const card = `
+          <div class="card">
+            <div class="card-header" style="font-weight: bold; color: #00a1ff;">${p.full_name} (${p.patient_id})</div>
+            <div class="card-content card-content-padding">
+              <p><b>Ngày sinh:</b> ${p.birth_date}</p>
+              <p><b>Giới tính:</b> ${p.gender}</p>
+              <p><b>Điện thoại:</b> ${p.phone}</p>
+              <p><b>Bảo hiểm:</b> ${p.insurance_id}</p>
+
+              <div class="block-title">Chọn loại quan sát</div>
+              
+
+              <div class="observation-buttons-horizontal">
+                <button class="button button-outline" onclick="showObservation('${p.patient_id}', 'temperature', '${p.patient_id}')">🌡️ Nhiệt độ</button>
+                <button class="button button-outline" onclick="showObservation('${p.patient_id}', 'glucose', '${p.patient_id}')">🧪 Glucose</button>
+                <button class="button button-outline" onclick="showObservation('${p.patient_id}', 'blood_pressure', '${p.patient_id}')">💉 Huyết áp</button>
+                <button class="button button-outline" onclick="showObservation('${p.patient_id}', 'heart_rate', '${p.patient_id}')">❤️ Nhịp tim</button>
+                <button class="button button-outline" onclick="showObservation('${p.patient_id}', 'spo2', '${p.patient_id}')">🫁 SpO₂</button>
+
+              </div>
+
+              <div id="observationValue-${p.patient_id}" class="block"></div>
+              <canvas id="observationChart-${p.patient_id}" style="margin-top: 1rem;"></canvas>
+
+            </div>
+          </div>
+        `;
+        $("#patientCardContainer").append(card);
+
+      });
+
+      //console.log("Đã gọi searchPatient");
+      //console.log("Query:", query);
+      //console.log("Results:", results);
+
+      //console.log("Gender:", p.gender);
+      //console.log("Phone:", p.phone);
+      //console.log("Insurance:", p.insurance_id);
+  }
+
+    //async function showObservation(patientId, type) {
+    //  const res = await fetch(`/api/observations/${patientId}`);
+    //  const data = await res.json();
+    //  const filtered = data.filter(o => o.type === type);
+    //  const html = filtered.map(o => `<p>${o.date}: ${o.value}</p>`).join("");
+      //$$("#observationValue").html(`<div class="block-title">${type}</div>${html}`);
+    //  $("#observationValue").html(`<div class="block-title">${type}</div>${html}`);
+    //}
+
+    document.addEventListener("DOMContentLoaded", loadPatientList);
+
+
+    //***observation***
+    async function showObservation(patientId, type, targetId) {
+  const res = await fetch(`/api/observations/${patientId}`);
+  const data = await res.json();
+  const filtered = data.filter(o => o.type === type);
+
+  const valueContainer = document.getElementById(`observationValue-${targetId}`);
+  valueContainer.innerHTML = `<div class="block-title">${type}</div>` +
+    filtered.map(o => `<p>${o.date}: ${o.value}</p>`).join("");
+
+  const ctx = document.getElementById(`observationChart-${targetId}`).getContext("2d");
+  const labels = filtered.map(o => o.date);
+  const values = filtered.map(o => parseFloat(o.value));
+
+  if (!window.obsCharts) window.obsCharts = {};
+  if (window.obsCharts[targetId]) window.obsCharts[targetId].destroy();
+
+  window.obsCharts[targetId] = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [{
+        label: type,
+        data: values,
+        borderColor: "blue",
+        backgroundColor: "rgba(0,0,255,0.1)",
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: false
+        }
+      }
+    }
+  });
+}
+
+  </script>
+  
+  <!-- Framework7 library -->
+  <script src="framework7/framework7-bundle.min.js"></script>
+  
+  
+  <!-- App routes -->
+  <script src="js/routes.js"></script>
+  <!-- App store -->
+  <script src="js/store.js"></script>
+  <!-- App scripts -->
+  <script src="js/app.js"></script>
+</body>
+</html>
+
+
