@@ -26,6 +26,9 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))  # Thêm thư mục 
 # ================================================================
 
 # ============= local và Render ==================
+# ✅ Khai báo biến trước khi dùng
+DATABASE_URL = os.getenv("DATABASE_URL")
+
 # Tự động nhận biết môi trường
 is_render = os.getenv("RENDER") == "true"
 
@@ -37,6 +40,7 @@ if not is_render:
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 if not SQLALCHEMY_DATABASE_URL:
     raise RuntimeError("❌ DATABASE_URL không được thiết lập")
+print("📦 DATABASE_URL =", repr(DATABASE_URL))  # Thêm dòng này để kiểm tra
 
 # Tạo engine
 engine = create_engine(SQLALCHEMY_DATABASE_URL, pool_pre_ping=True)
@@ -63,3 +67,4 @@ if __name__ == "__main__":
             print("✅ Database connected successfully.")
     except Exception as e:
         print("❌ Database connection failed:", e)
+
