@@ -41,12 +41,12 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-@app.get("/")
-def read_root():
-    return {"message": "Hello from EMR Project!"}
-
 from backend.routers import patients
 app.include_router(patients.router)
+
+'''
+=================================================================================
+# good for local
 
 # Tính đường dẫn tuyệt đối tới thư mục www
 static_path = os.path.abspath("D:/emr-project4/frontend/www")
@@ -56,12 +56,30 @@ if not os.path.exists(static_path):
     raise RuntimeError(f"❌ Thư mục static không tồn tại: {static_path}")
 
 # Mount static files
-# app.mount("/", StaticFiles(directory=static_path, html=True), name="static")
+app.mount("/static", StaticFiles(directory=static_path, html=True), name="static")
+
+# print("📁 Static path:", static_path)
+# print("📄 search.html exists:", os.path.exists(os.path.join(static_path, "search.html")))
+'''
+# ==================================================================================
+# chạy được cả trên máy bạn và trên Render
+
+# Tính đường dẫn tương đối tới thư mục frontend/www
+static_path = os.path.join(os.path.dirname(__file__), "..", "frontend", "www")
+static_path = os.path.abspath(static_path)
+
+# Kiểm tra tồn tại
+if not os.path.exists(static_path):
+    raise RuntimeError(f"❌ Thư mục static không tồn tại: {static_path}")
+
+# Mount static files vào /static
 app.mount("/static", StaticFiles(directory=static_path, html=True), name="static")
 
 
 print("📁 Static path:", static_path)
 print("📄 search.html exists:", os.path.exists(os.path.join(static_path, "search.html")))
+
+# =================================================================================
 
 # 2) Trả về search.html khi truy cập gốc
 @app.get("/", include_in_schema=False)
@@ -406,4 +424,3 @@ def analyze_observations(patient_id: str):
         }
 
     return result
-
