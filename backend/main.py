@@ -27,13 +27,14 @@ from fastapi.responses import FileResponse
 
 import psycopg2
 import logging
+import os
 
+from sqlalchemy import create_engine
+from dotenv import load_dotenv
 # =================================================================================
 # cho Render
-import os
-from sqlalchemy import create_engine
-
-DATABASE_URL = os.getenv("DATABASE_URL")
+# DATABASE_URL = os.getenv("DATABASE_URL")
+# engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 # =================================================================================
 
 logging.basicConfig(
@@ -51,11 +52,35 @@ from backend.routers import patients
 app.include_router(patients.router)
 
 '''
-=================================================================================
+# =================================================================================
 # good for local
 
 # Tính đường dẫn tuyệt đối tới thư mục www
-static_path = os.path.abspath("D:/emr-project4/frontend/www")
+# good for local
+# static_path = os.path.abspath("D:/emr-project4/frontend/www")
+'''
+
+# ..................................................
+# Good -- chạy được cả trên máy bạn và trên Render
+from dotenv import load_dotenv
+
+is_render = os.getenv("RENDER") == "true"
+if not is_render:
+    load_dotenv()
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+
+# Vì Render không có ổ D:/, nên cần dùng đường dẫn tương đối từ file main.py
+static_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "www"))
+
+if os.getenv("RENDER") == "true":
+    # Render: dùng đường dẫn tương đối
+    static_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "www"))
+else:
+    # Local: dùng đường dẫn tuyệt đối
+    static_path = os.path.abspath("D:/emr-project4/frontend/www")
+
 
 # Kiểm tra tồn tại
 if not os.path.exists(static_path):
@@ -64,10 +89,16 @@ if not os.path.exists(static_path):
 # Mount static files
 app.mount("/static", StaticFiles(directory=static_path, html=True), name="static")
 
-# print("📁 Static path:", static_path)
-# print("📄 search.html exists:", os.path.exists(os.path.join(static_path, "search.html")))
-'''
+print("📁 Static path:", static_path)
+print("📄 search.html exists:", os.path.exists(os.path.join(static_path, "search.html")))
+# ...............................
+
 # ==================================================================================
+
+
+
+'''
+# =================================================================================
 # chạy được cả trên máy bạn và trên Render
 
 # Tính đường dẫn tương đối tới thư mục frontend/www
@@ -80,6 +111,7 @@ if not os.path.exists(static_path):
 
 # Mount static files vào /static
 app.mount("/static", StaticFiles(directory=static_path, html=True), name="static")
+
 #  mount thêm để có thể truy cập index.html qua /
 app.mount("/", StaticFiles(directory=static_path, html=True), name="frontend")
 
@@ -88,6 +120,36 @@ print("📁 Static path:", static_path)
 print("📄 search.html exists:", os.path.exists(os.path.join(static_path, "search.html")))
 
 # =================================================================================
+'''
+
+'''
+# =================================================================================
+# để chạy tốt cả local và Render
+app = FastAPI()
+
+# Load .env khi chạy local
+load_dotenv()
+
+# Kết nối database
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError("❌ DATABASE_URL không được thiết lập")
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+
+# Tính đường dẫn static
+static_path = os.path.abspath(os.path.join(os.getcwd(), "frontend", "www"))
+print("📁 Static path:", static_path)
+
+if not os.path.exists(static_path):
+    raise RuntimeError(f"❌ Thư mục static không tồn tại: {static_path}")
+
+# Mount static files
+app.mount("/static", StaticFiles(directory=static_path, html=True), name="static")
+app.mount("/", StaticFiles(directory=static_path, html=True), name="frontend")
+
+# =================================================================================
+'''
+
 
 # 2) Trả về search.html khi truy cập gốc
 @app.get("/", include_in_schema=False)
@@ -432,5 +494,3 @@ def analyze_observations(patient_id: str):
         }
 
     return result
-
-
