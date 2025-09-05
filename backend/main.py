@@ -28,7 +28,13 @@ from fastapi.responses import FileResponse
 import psycopg2
 import logging
 
+# =================================================================================
+# cho Render
+import os
+from sqlalchemy import create_engine
 
+DATABASE_URL = os.getenv("DATABASE_URL")
+# =================================================================================
 
 logging.basicConfig(
     level=logging.INFO,
@@ -426,4 +432,5 @@ def analyze_observations(patient_id: str):
         }
 
     return result
+
 
