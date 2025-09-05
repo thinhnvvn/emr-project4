@@ -74,6 +74,8 @@ if not os.path.exists(static_path):
 
 # Mount static files vào /static
 app.mount("/static", StaticFiles(directory=static_path, html=True), name="static")
+#  mount thêm để có thể truy cập index.html qua /
+app.mount("/", StaticFiles(directory=static_path, html=True), name="frontend")
 
 
 print("📁 Static path:", static_path)
@@ -424,3 +426,4 @@ def analyze_observations(patient_id: str):
         }
 
     return result
+
