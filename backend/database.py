@@ -19,9 +19,31 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))  # Thêm thư mục 
 # engine = create_engine(DATABASE_URL)
 # SessionLocal = sessionmaker(bind=engine)
 
-SQLALCHEMY_DATABASE_URL = "postgresql://postgres:1234@localhost:5432/fhir_data"
+# ============== Good for local =========
+# SQLALCHEMY_DATABASE_URL = "postgresql://postgres:1234@localhost:5432/fhir_data"
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+# engine = create_engine(SQLALCHEMY_DATABASE_URL)
+# ================================================================
+
+# ============= local và Render ==================
+# Tự động nhận biết môi trường
+is_render = os.getenv("RENDER") == "true"
+
+# Chỉ load .env khi chạy local
+if not is_render:
+    load_dotenv()
+
+# Lấy DATABASE_URL từ môi trường
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
+if not SQLALCHEMY_DATABASE_URL:
+    raise RuntimeError("❌ DATABASE_URL không được thiết lập")
+
+# Tạo engine
+engine = create_engine(SQLALCHEMY_DATABASE_URL, pool_pre_ping=True)
+
+# ==================================================
+
+
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
