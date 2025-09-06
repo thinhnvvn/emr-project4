@@ -60,7 +60,7 @@ engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 
 # ✅ Session và Base
 SessionLocal = sessionmaker(bind=engine)
-Base = declarative_base()
+# Base = declarative_base()
 
 # ✅ Hàm tạo bảng
 def init_db():
