@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 import sys
 import os
-import pandas as pd
+# import pandas as pd
 import statistics
 
 
@@ -70,6 +70,8 @@ if not is_render:
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+
+
 
 # Vì Render không có ổ D:/, nên cần dùng đường dẫn tương đối từ file main.py
 static_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "www"))
@@ -192,6 +194,7 @@ def read_patients(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 print("📄 ĐANG CHẠY FILE:", __file__, flush=True)
+print("📦 DATABASE_URL =", repr(os.getenv("DATABASE_URL")))
 
 # trả lại nhiều kết quả
 @app.get("/api/patients/search")
