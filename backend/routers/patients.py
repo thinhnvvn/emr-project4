@@ -13,6 +13,11 @@ router = APIRouter(tags=["patients"])
 @router.get("/api/patients")
 def get_all_patients(db: Session = Depends(get_db)):
     results = db.query(Patient).all()
+
+    print("📋 Tổng số bệnh nhân:", len(results))
+    for p in results:
+        print("👤", p.patient_id, p.full_name)
+        
     return [
         {
             "patient_id": p.patient_id,
@@ -24,4 +29,5 @@ def get_all_patients(db: Session = Depends(get_db)):
         }
         for p in results
     ]
+
 
